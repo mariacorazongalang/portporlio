@@ -52,6 +52,13 @@ function updateThemeButton() {
   themeToggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
   themeColor.content = dark ? '#0b1120' : '#ffffff'; // colors the phone's browser bar to match
 }
+// Soft color fade used whenever the circle animation is not running. The class stays on until the
+// photo's 0.8s crossfade finishes; removing it earlier would cut that fade short.
+function fadeTheme(apply) {
+  root.classList.add('theme-fade');
+  apply();
+  setTimeout(() => root.classList.remove('theme-fade'), 850);
+}
 function setTheme(theme, origin) {
   const apply = () => {
     root.dataset.theme = theme;
@@ -61,9 +68,7 @@ function setTheme(theme, origin) {
   if (reduceMotion) { apply(); return; }
   // Older browsers: fade the colors instead of the circle animation.
   if (!document.startViewTransition) {
-    root.classList.add('theme-fade');
-    apply();
-    setTimeout(() => root.classList.remove('theme-fade'), 400);
+    fadeTheme(apply);
     return;
   }
   // Modern browsers: reveal the new theme as a circle growing from the button.
@@ -90,8 +95,10 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', eve
   let saved = null;
   try { saved = localStorage.getItem('theme'); } catch (e) {}
   if (!saved) {
-    root.dataset.theme = event.matches ? 'dark' : 'light';
-    updateThemeButton();
+    fadeTheme(() => {
+      root.dataset.theme = event.matches ? 'dark' : 'light';
+      updateThemeButton();
+    });
   }
 });
 
