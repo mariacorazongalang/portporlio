@@ -14,11 +14,27 @@
       if (theme !== 'light' && theme !== 'dark') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       document.documentElement.dataset.theme = theme;
       document.documentElement.classList.add('js');
+      // The loading screen plays once per visit, and never for visitors who turned off animations.
+      var skipIntro = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      try { skipIntro = skipIntro || sessionStorage.getItem('introSeen') === '1'; } catch (e) {}
+      if (skipIntro) document.documentElement.classList.add('no-intro', 'ready');
     })();
   </script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader-glow"></div>
+    <div class="loader-corner loader-brand">MCG<span>.</span></div>
+    <div class="loader-corner loader-year">Portfolio · 2026</div>
+    <div class="loader-inner">
+      <ul class="loader-lines" id="loaderLines"></ul>
+      <div class="loader-count"><span id="loaderPct">0</span><small>%</small></div>
+      <div class="loader-bar"><span id="loaderBar"></span></div>
+      <p class="loader-name">Ma.Corazon June L. Galang</p>
+    </div>
+  </div>
+
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
   <header class="site-header">
@@ -64,15 +80,28 @@
       </div>
       <div class="hero-art">
         <div class="orbit orbit-one" aria-hidden="true"></div><div class="orbit orbit-two" aria-hidden="true"></div>
-        <div class="profile-card">
-          <!-- Both photos sit on top of each other; the dark-mode one fades in over the light-mode one. -->
+        <!-- The lanyard strap is drawn by script.js; the card swings on it and can be dragged. -->
+        <svg class="lanyard" aria-hidden="true" focusable="false">
+          <path id="lanyardStrap" class="lanyard-strap" d="M0 0"/>
+          <text class="lanyard-text"><textPath href="#lanyardStrap" startOffset="6">MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT •</textPath></text>
+          <circle id="lanyardPin" class="lanyard-pin" r="6" cx="0" cy="0"/>
+        </svg>
+        <div class="id-card" id="idCard" role="img" aria-label="Student ID card: Ma.Corazon June L. Galang, BS Information Technology, Northeastern College, 3rd year, class of 2028">
+          <span class="id-clip" aria-hidden="true"></span>
+          <div class="id-top"><span>NORTHEASTERN COLLEGE</span><b>STUDENT</b></div>
+          <!-- Both photos sit on top of each other; dark mode shows the black-blazer one. -->
           <div class="portrait">
-            <img class="portrait-light" src="assets/images/portrait-light.jpg" alt="Portrait of Ma.Corazon June L. Galang" width="600" height="815" fetchpriority="high">
-            <img class="portrait-dark" src="assets/images/portrait-dark.jpg" alt="" width="600" height="815">
+            <img class="portrait-light" src="assets/images/portrait-light.jpg" alt="" width="600" height="815" fetchpriority="high" draggable="false">
+            <img class="portrait-dark" src="assets/images/portrait-dark.jpg" alt="" width="600" height="815" draggable="false">
           </div>
-          <p class="profile-label">FUTURE IT PROFESSIONAL</p>
-          <div class="mini-tags" aria-hidden="true"><span>Learn</span><span>Build</span><span>Grow</span></div>
+          <div class="id-info">
+            <strong>MA.CORAZON JUNE L. GALANG</strong>
+            <span class="id-course">BS Information Technology</span>
+            <div class="id-meta"><span>Year<b>3rd</b></span><span>Class of<b>2028</b></span><span>Status<b>Active</b></span></div>
+          </div>
+          <div class="id-barcode" aria-hidden="true"></div>
         </div>
+        <span class="drag-hint" id="dragHint" aria-hidden="true">✋ Drag the ID</span>
         <span class="float-chip chip-top" aria-hidden="true">&lt;/&gt; Code</span><span class="float-chip chip-bottom" aria-hidden="true">✦ Keep learning</span>
       </div>
     </section>

@@ -28,6 +28,77 @@ document.addEventListener('keydown', event => {
 document.getElementById('year').textContent = new Date().getFullYear();
 if (isMac) document.querySelectorAll('.shortcut-key').forEach(key => { key.textContent = '⌘ K'; });
 
+// ---------- Loading screen ----------
+// Shows real progress (fonts + portrait photos), lasts at least MIN_TIME so it can be seen,
+// and never longer than MAX_TIME. `introDone` resolves when the screen starts lifting.
+const introDone = new Promise(resolve => {
+  const loader = document.getElementById('loader');
+  if (!loader || root.classList.contains('no-intro')) {
+    root.classList.add('ready');
+    resolve();
+    return;
+  }
+  const MIN_TIME = 1700;
+  const MAX_TIME = 5000;
+  const steps = [
+    { at: 0, text: '> booting portfolio' },
+    { at: 22, text: '> loading 17 certificates' },
+    { at: 48, text: '> compiling skills: HTML · CSS · PHP · MySQL' },
+    { at: 74, text: '> printing student ID' }
+  ];
+  const lineList = document.getElementById('loaderLines');
+  const percent = document.getElementById('loaderPct');
+  const bar = document.getElementById('loaderBar');
+  const start = performance.now();
+  let assetsReady = false;
+  let shown = 0;
+  let nextStep = 0;
+
+  const waits = [...document.querySelectorAll('.portrait img')].map(img => (img.decode ? img.decode().catch(() => {}) : null));
+  if (document.fonts) waits.push(document.fonts.ready);
+  Promise.all(waits).then(() => { assetsReady = true; });
+
+  const addLine = () => {
+    const last = lineList.lastElementChild;
+    if (last) last.classList.add('done');
+    const line = document.createElement('li');
+    line.textContent = steps[nextStep].text;
+    lineList.append(line);
+    nextStep++;
+  };
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(safetyTimer);
+    while (nextStep < steps.length) addLine();
+    lineList.lastElementChild.classList.add('done');
+    try { sessionStorage.setItem('introSeen', '1'); } catch (e) {}
+    setTimeout(() => {
+      root.classList.add('ready');
+      loader.classList.add('leave');
+      resolve();
+      setTimeout(() => loader.remove(), 1400);
+    }, 250);
+  };
+  const tick = now => {
+    const elapsed = now - start;
+    const timeShare = Math.min(elapsed / MIN_TIME, 1) * 100;
+    // Hold at 92% until the photos and fonts are really loaded (or we have waited long enough).
+    const target = assetsReady || elapsed > MAX_TIME ? timeShare : Math.min(timeShare, 92);
+    shown += (target - shown) * 0.14;
+    if (target === 100 && shown > 99.5) shown = 100;
+    percent.textContent = Math.floor(shown);
+    bar.style.transform = `scaleX(${shown / 100})`;
+    while (nextStep < steps.length && shown >= steps[nextStep].at) addLine();
+    if (shown >= 100) finish();
+    else if (!finished) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  // Safety net: if animation frames stall (e.g. a background tab), finish anyway so the site never stays hidden.
+  const safetyTimer = setTimeout(finish, MAX_TIME + 1500);
+});
+
 // Stop the page behind an open pop-up (viewer or command menu) from scrolling.
 function updateScrollLock() {
   root.classList.toggle('modal-open', document.querySelector('dialog[open]') !== null);
@@ -193,8 +264,8 @@ if (!reduceMotion) {
   tick();
 }
 
-// ---------- Count-up numbers ----------
-if (!reduceMotion) {
+// ---------- Count-up numbers (after the loading screen) ----------
+if (!reduceMotion) introDone.then(() => {
   const countObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
@@ -216,7 +287,7 @@ if (!reduceMotion) {
     el.textContent = '0';
     countObserver.observe(el);
   });
-}
+});
 
 // ---------- Scrolling strip of skills and organizations ----------
 document.querySelectorAll('.marquee-row').forEach(row => {
@@ -251,6 +322,210 @@ hero.addEventListener('pointerleave', () => {
   heroBg.style.removeProperty('--hx');
   heroBg.style.removeProperty('--hy');
 });
+
+// ---------- ID card on a stretchy lanyard ----------
+// The strap works like a rubber band: it only pulls when it is longer than its rest length, and the
+// further it is stretched the harder it pulls back. The card itself swings like a pendulum around the clip.
+const lanyard = (() => {
+  const stage = document.querySelector('.hero-art');
+  const card = document.getElementById('idCard');
+  const strap = document.getElementById('lanyardStrap');
+  const pin = document.getElementById('lanyardPin');
+  const hint = document.getElementById('dragHint');
+  if (reduceMotion || !card || !strap) return null; // the card simply hangs still (CSS)
+
+  const CLIP = 18;               // px from the card's top edge up to where the strap attaches
+  const GRAVITY = 2200;          // px/s²
+  const STIFFNESS = 60;          // how hard the stretched strap pulls back
+  const DAMPING = 1.4;           // how quickly the bouncing calms down
+  const SWING_STIFFNESS = 40;    // how strongly the card turns to follow the strap
+  const SWING_DAMPING = 4.5;
+  const SWING_FROM_MOTION = 0.0016; // how much sudden movement makes the card swing
+  const MAX_SPEED = 3500;
+
+  const anchor = { x: 0, y: 0 };
+  const pos = { x: 0, y: 0 };    // where the strap meets the clip
+  const vel = { x: 0, y: 0 };
+  let angle = 0;                 // card rotation in radians (0 = hanging straight down)
+  let spin = 0;
+  let restLength = 100;
+  let cardWidth = 250;
+  let drag = null;
+  let running = false;
+  let dropped = false;
+  let lastTime = 0;
+  let nextNudge = 0;
+  let onScreen = true;
+  let loopId = 0;
+
+  stage.classList.add('physics');
+
+  // Phones have less room, so random pushes are gentler there.
+  const strength = () => (window.innerWidth <= 700 ? 0.4 : 1);
+
+  function measure() {
+    const box = stage.getBoundingClientRect();
+    cardWidth = card.offsetWidth;
+    anchor.x = box.width / 2;
+    if (window.innerWidth <= 700) {
+      anchor.y = 24; // phones: hang from a small pin at the top of the card's area
+    } else {
+      // desktop: hang from the top of the hero, hidden behind the sticky header
+      anchor.y = hero.getBoundingClientRect().top - box.top - 10;
+    }
+    const restY = Math.max(40, (box.height - card.offsetHeight) / 2) - CLIP;
+    // At rest the strap is stretched by GRAVITY / STIFFNESS, so subtract that to land exactly at restY.
+    // A longer strap swings more slowly and gently, so never go below 110px.
+    restLength = Math.max(110, restY - anchor.y - GRAVITY / STIFFNESS);
+    pin.setAttribute('cx', anchor.x);
+    pin.setAttribute('cy', anchor.y);
+  }
+
+  function step(dt) {
+    const prevX = vel.x;
+    if (drag) {
+      // Follow the finger/mouse closely; the velocity is remembered for the throw on release.
+      const nx = pos.x + (drag.x - pos.x) * Math.min(1, dt * 30);
+      const ny = pos.y + (drag.y - pos.y) * Math.min(1, dt * 30);
+      vel.x = (nx - pos.x) / dt;
+      vel.y = (ny - pos.y) / dt;
+      pos.x = nx;
+      pos.y = ny;
+    } else {
+      let ax = 0;
+      let ay = GRAVITY;
+      const dx = pos.x - anchor.x;
+      const dy = pos.y - anchor.y;
+      const length = Math.hypot(dx, dy) || 1;
+      if (length > restLength) {
+        const pull = STIFFNESS * (length - restLength);
+        ax -= pull * dx / length;
+        ay -= pull * dy / length;
+      }
+      const damping = Math.exp(-DAMPING * dt);
+      vel.x = (vel.x + ax * dt) * damping;
+      vel.y = (vel.y + ay * dt) * damping;
+      const speed = Math.hypot(vel.x, vel.y);
+      if (speed > MAX_SPEED) { vel.x *= MAX_SPEED / speed; vel.y *= MAX_SPEED / speed; }
+      pos.x += vel.x * dt;
+      pos.y += vel.y * dt;
+    }
+    // The card turns to line up with the strap, and lags behind sideways movement (pendulum swing).
+    // A loose strap can't steer the card, so only follow the strap's angle as much as it is pulled tight.
+    const strapAngle = Math.atan2(pos.x - anchor.x, pos.y - anchor.y);
+    const tightness = Math.max(0, Math.min(1, (Math.hypot(pos.x - anchor.x, pos.y - anchor.y) - restLength * 0.5) / (restLength * 0.5)));
+    const target = Math.max(-1.3, Math.min(1.3, -strapAngle)) * tightness;
+    const sideways = (vel.x - prevX) / dt;
+    spin += (-SWING_STIFFNESS * (angle - target) - SWING_DAMPING * spin + sideways * SWING_FROM_MOTION) * dt;
+    angle = Math.max(-1.5, Math.min(1.5, angle + spin * dt));
+  }
+
+  function render() {
+    card.style.transform = `translate(${pos.x - cardWidth / 2}px, ${pos.y + CLIP}px) rotate(${angle}rad)`;
+    const dx = pos.x - anchor.x;
+    const dy = pos.y - anchor.y;
+    const length = Math.hypot(dx, dy) || 1;
+    // Slack strap droops into a curve; a stretched strap is straight and gets thinner, like rubber.
+    const sag = length < restLength ? Math.sqrt(restLength * restLength - length * length) * 0.5 : 0;
+    strap.setAttribute('d', `M${anchor.x} ${anchor.y} Q${(anchor.x + pos.x) / 2} ${(anchor.y + pos.y) / 2 + sag} ${pos.x} ${pos.y}`);
+    strap.style.strokeWidth = (14 * Math.max(0.5, Math.min(1, Math.sqrt((restLength + GRAVITY / STIFFNESS) / length)))).toFixed(2) + 'px';
+  }
+
+  function frame(now, id) {
+    if (!running || id !== loopId) return; // an older loop that was replaced: stop it
+    const elapsed = Math.min(0.033, (now - lastTime) / 1000 || 0.016);
+    lastTime = now;
+    // Small sub-steps keep the spring stable even on slow phones.
+    for (let i = 0; i < 4; i++) step(elapsed / 4);
+    // Every few seconds, a gentle random nudge keeps the card swinging.
+    if (!drag && now > nextNudge) {
+      vel.x += (Math.random() < 0.5 ? -1 : 1) * (50 + Math.random() * 80) * strength();
+      nextNudge = now + 2500 + Math.random() * 3000;
+    }
+    render();
+    requestAnimationFrame(t => frame(t, id));
+  }
+
+  function setRunning(value) {
+    if (value === running) return;
+    running = value && dropped && onScreen;
+    if (running) {
+      const id = ++loopId; // only one animation loop may run at a time
+      lastTime = performance.now();
+      requestAnimationFrame(t => frame(t, id));
+    }
+  }
+
+  function drop() {
+    measure();
+    // Start at the anchor with a random sideways push, then fall and bounce on the strap.
+    pos.x = anchor.x + (Math.random() - 0.5) * 30;
+    pos.y = anchor.y + 10;
+    vel.x = (Math.random() - 0.5) * 320 * strength();
+    vel.y = 0;
+    angle = (Math.random() - 0.5) * 0.4;
+    spin = 0;
+    nextNudge = performance.now() + 3000;
+    dropped = true;
+    stage.classList.add('dropped');
+    render();
+    setRunning(true);
+    setTimeout(() => { if (!hint.dataset.used) hint.classList.add('show'); }, 1600);
+    setTimeout(() => hint.classList.remove('show'), 9000);
+  }
+
+  // Dragging with mouse or finger
+  const pointerInStage = event => {
+    const box = stage.getBoundingClientRect();
+    return { x: event.clientX - box.left, y: event.clientY - box.top };
+  };
+  card.addEventListener('pointerdown', event => {
+    if (!dropped) return;
+    event.preventDefault();
+    try { card.setPointerCapture(event.pointerId); } catch (e) {} // keeps the drag going even outside the card
+    const p = pointerInStage(event);
+    drag = { offsetX: p.x - pos.x, offsetY: p.y - pos.y, x: pos.x, y: pos.y };
+    card.classList.add('grabbing');
+    root.classList.add('dragging-card');
+    hint.dataset.used = '1';
+    hint.classList.remove('show');
+    setRunning(true);
+  });
+  card.addEventListener('pointermove', event => {
+    if (!drag) return;
+    const p = pointerInStage(event);
+    drag.x = p.x - drag.offsetX;
+    drag.y = p.y - drag.offsetY;
+  });
+  const release = () => {
+    if (!drag) return;
+    drag = null; // the stretched strap now pulls the card back like a rubber band
+    card.classList.remove('grabbing');
+    root.classList.remove('dragging-card');
+  };
+  card.addEventListener('pointerup', release);
+  card.addEventListener('pointercancel', release);
+  card.addEventListener('lostpointercapture', release);
+
+  // Pause the animation while the hero is off screen, to save battery.
+  new IntersectionObserver(entries => {
+    onScreen = entries[0].isIntersecting;
+    setRunning(onScreen);
+  }).observe(stage);
+  new ResizeObserver(() => { if (dropped) measure(); }).observe(stage);
+
+  // Drop the card once the loading screen lifts and the card's area is visible (on phones it is further down).
+  introDone.then(() => {
+    const waitForView = new IntersectionObserver(entries => {
+      if (!entries[0].isIntersecting) return;
+      waitForView.disconnect();
+      setTimeout(drop, 350);
+    }, { threshold: 0.25 });
+    waitForView.observe(stage);
+  });
+
+  return { drop: () => { if (dropped) drop(); } };
+})();
 
 // ---------- Spotlight that follows the mouse on cards ----------
 document.querySelectorAll('.spotlight').forEach(card => {
@@ -440,6 +715,7 @@ const commands = [
   { group: 'Go to', label: 'Certificates', icon: '✧', keywords: 'achievements', run: goTo('certificates') },
   { group: 'Go to', label: 'Resume', icon: '▤', keywords: 'cv', run: goTo('resume') },
   { group: 'Go to', label: 'Contact', icon: '✉', run: goTo('contact') },
+  ...(lanyard ? [{ group: 'Actions', label: 'Drop the ID card again', icon: '↯', keywords: 'lanyard swing fun', run: () => { goTo('home')(); lanyard.drop(); } }] : []),
   { group: 'Actions', label: 'Toggle dark mode', icon: '◐', keywords: 'theme light night', run: () => toggleTheme() },
   { group: 'Actions', label: 'Preview resume', icon: '⤢', keywords: 'cv view', run: () => (canUseDialog ? openResume() : goTo('resume')()) },
   { group: 'Actions', label: 'Download resume (PDF)', icon: '↓', keywords: 'cv', run: () => document.getElementById('resumeDownload').click() },
