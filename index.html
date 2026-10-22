@@ -62,15 +62,18 @@
           <div class="stat"><strong data-count="2">2</strong><span>Team projects</span></div>
         </div>
       </div>
-      <div class="hero-art" aria-hidden="true">
-        <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+      <div class="hero-art">
+        <div class="orbit orbit-one" aria-hidden="true"></div><div class="orbit orbit-two" aria-hidden="true"></div>
         <div class="profile-card">
-          <div class="avatar">MCG</div>
+          <!-- Both photos sit on top of each other; the dark-mode one fades in over the light-mode one. -->
+          <div class="portrait">
+            <img class="portrait-light" src="assets/images/portrait-light.jpg" alt="Portrait of Ma.Corazon June L. Galang" width="600" height="815" fetchpriority="high">
+            <img class="portrait-dark" src="assets/images/portrait-dark.jpg" alt="" width="600" height="815">
+          </div>
           <p class="profile-label">FUTURE IT PROFESSIONAL</p>
-          <div class="code-lines"><i></i><i></i><i></i><i></i></div>
-          <div class="mini-tags"><span>Learn</span><span>Build</span><span>Grow</span></div>
+          <div class="mini-tags" aria-hidden="true"><span>Learn</span><span>Build</span><span>Grow</span></div>
         </div>
-        <span class="float-chip chip-top">&lt;/&gt; Code</span><span class="float-chip chip-bottom">✦ Keep learning</span>
+        <span class="float-chip chip-top" aria-hidden="true">&lt;/&gt; Code</span><span class="float-chip chip-bottom" aria-hidden="true">✦ Keep learning</span>
       </div>
     </section>
 
