@@ -66,7 +66,7 @@ h1,h2,h3,p{margin-top:0}h1,h2,h3{font-family:Manrope,sans-serif;letter-spacing:-
 footer{border-top:1px solid var(--line);padding:27px max(7vw,24px);display:flex;align-items:center;justify-content:space-between;gap:20px}footer p{font-size:.78rem;color:var(--muted);margin:0}.back-top{font-size:.82rem;color:var(--blue);font-weight:700;padding:10px 0}.site-header .brand,footer .brand{padding:6px 0}
 
 /* ---------- Scroll reveal (added by script.js) ---------- */
-.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1);transition-delay:var(--delay,0ms)}.reveal.in{opacity:1;transform:none}
+.reveal{opacity:0;transform:translateY(26px);transition:none}.reveal.in{opacity:1;transform:none;transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1);transition-delay:var(--delay,0ms)}
 
 /* ---------- Toast ---------- */
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:12px;font-size:.86rem;font-weight:600;box-shadow:var(--shadow-lg);transition:opacity .25s,transform .25s;pointer-events:none;z-index:60;max-width:calc(100vw - 32px)}.toast.show{opacity:1;transform:translate(-50%,0)}

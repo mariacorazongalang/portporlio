@@ -128,11 +128,14 @@ document.querySelectorAll('main section[id]').forEach(section => sectionObserver
 
 // ---------- Fade sections in while scrolling ----------
 if (!reduceMotion) {
-  const revealTargets = '.section-heading, .tile, .project-card, .timeline li, .certificate-grid, .resume-box, .contact-links > *';
+  const revealTargets = '.section-heading, .tile, .project-card, .timeline li, .filter-bar, .certificate-card, .resume-box, .contact-links > *';
   const revealObserver = new IntersectionObserver((entries, observer) => {
+    let batch = 0;
     entries.forEach(entry => {
       if (!entry.isIntersecting) return;
       const el = entry.target;
+      // Items that come into view together appear one after another.
+      el.style.setProperty('--delay', `${Math.min(batch++, 5) * 90}ms`);
       const finish = event => {
         if (event.target !== el) return;
         // Remove the helper classes so the normal hover animations work again.
@@ -144,11 +147,8 @@ if (!reduceMotion) {
       el.classList.add('in');
       observer.unobserve(el);
     });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  }, { threshold: 0, rootMargin: '0px 0px -40px 0px' }); // start as soon as any part is on screen
   document.querySelectorAll(revealTargets).forEach(el => {
-    // Cards in the same row appear one after another.
-    const position = [...el.parentElement.children].indexOf(el);
-    el.style.setProperty('--delay', `${Math.min(position, 5) * 90}ms`);
     el.classList.add('reveal');
     revealObserver.observe(el);
   });
@@ -333,6 +333,11 @@ function showItem(index, direction = 0) {
   lbDownload.setAttribute('download', item.file.split('/').pop());
   lbDownload.textContent = item.downloadLabel;
   lightbox.classList.toggle('is-document', Boolean(item.isDocument));
+  // Quietly download the previous and next certificates so arrows/swipes feel instant.
+  [viewerIndex - 1, viewerIndex + 1].forEach(i => {
+    const neighbor = viewerItems[(i + viewerItems.length) % viewerItems.length];
+    if (neighbor !== item) new Image().src = neighbor.image;
+  });
   if (direction && !reduceMotion) {
     lbImg.animate(
       [{ opacity: 0, transform: `translateX(${direction * 40}px)` }, { opacity: 1, transform: 'none' }],

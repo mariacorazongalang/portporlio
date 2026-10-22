@@ -2,7 +2,7 @@
 
 Personal portfolio of a 3rd-year BS Information Technology student at Northeastern College. It presents my skills, projects, professional development certificates, and resume.
 
-**Live site:** _add your link here after publishing_
+**Live site:** https://portporlio.vercel.app  ·  Mirror: https://mariacorazongalang.github.io/portporlio/
 
 ## Features
 - **Dark and light mode**: follows the device setting, remembers the visitor's choice, and switches with an animated circle reveal (View Transitions API)
