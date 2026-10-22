@@ -374,6 +374,15 @@ if (canUseDialog) {
   certCards.forEach(card => openInViewer(card, () => openCertificate(card)));
   openInViewer(document.getElementById('resumePreview'), openResume);
   openInViewer(document.getElementById('resumeView'), openResume);
+  // Project screenshots: any link with data-view-title opens its image in the viewer.
+  document.querySelectorAll('[data-view-title]').forEach(link => openInViewer(link, () => openViewer([{
+    image: link.getAttribute('href'),
+    alt: link.querySelector('img').alt,
+    title: link.dataset.viewTitle,
+    meta: link.dataset.viewMeta,
+    file: link.getAttribute('href'),
+    downloadLabel: '↓ Download'
+  }])));
 }
 lbPrev.addEventListener('click', () => step(-1));
 lbNext.addEventListener('click', () => step(1));
