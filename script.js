@@ -367,12 +367,8 @@ const lanyard = (() => {
     const box = stage.getBoundingClientRect();
     cardWidth = card.offsetWidth;
     anchor.x = box.width / 2;
-    if (window.innerWidth <= 700) {
-      anchor.y = 24; // phones: hang from a small pin at the top of the card's area
-    } else {
-      // desktop: hang from the top of the hero, hidden behind the sticky header
-      anchor.y = hero.getBoundingClientRect().top - box.top - 10;
-    }
+    // Hang from the top of the hero, hidden behind the sticky header (on phones the card is at the top too).
+    anchor.y = hero.getBoundingClientRect().top - box.top - 10;
     const restY = Math.max(40, (box.height - card.offsetHeight) / 2) - CLIP;
     // At rest the strap is stretched by GRAVITY / STIFFNESS, so subtract that to land exactly at restY.
     // A longer strap swings more slowly and gently, so never go below 110px.
