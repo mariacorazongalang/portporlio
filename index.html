@@ -20,7 +20,8 @@
       if (skipIntro) document.documentElement.classList.add('no-intro', 'ready');
     })();
   </script>
-  <link rel="stylesheet" href="style.css">
+  <!-- ?v= changes with each update so phones never keep an old copy -->
+  <link rel="stylesheet" href="style.css?v=2026-10-23c">
 </head>
 <body>
   <div class="loader" id="loader" aria-hidden="true">
@@ -86,7 +87,7 @@
           <text class="lanyard-text"><textPath href="#lanyardStrap" startOffset="6">MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT •</textPath></text>
           <circle id="lanyardPin" class="lanyard-pin" r="6" cx="0" cy="0"/>
         </svg>
-        <div class="id-card" id="idCard" role="img" aria-label="Student ID card: Ma.Corazon June L. Galang, BS Information Technology, Northeastern College, 3rd year, class of 2028">
+        <div class="id-card" id="idCard" role="img" aria-label="Student ID card: Ma.Corazon June L. Galang, BS Information Technology, Northeastern College">
           <span class="id-clip" aria-hidden="true"></span>
           <div class="id-top"><span>NORTHEASTERN COLLEGE</span><b>STUDENT</b></div>
           <!-- Both photos sit on top of each other; dark mode shows the black-blazer one. -->
@@ -97,7 +98,6 @@
           <div class="id-info">
             <strong>MA.CORAZON JUNE L. GALANG</strong>
             <span class="id-course">BS Information Technology</span>
-            <div class="id-meta"><span>Year<b>3rd</b></span><span>Class of<b>2028</b></span><span>Status<b>Active</b></span></div>
           </div>
           <div class="id-barcode" aria-hidden="true"></div>
         </div>
@@ -281,6 +281,6 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="script.js"></script>
+  <script src="script.js?v=2026-10-23b"></script>
 </body>
 </html>
