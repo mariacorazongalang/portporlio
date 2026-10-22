@@ -14,19 +14,27 @@
       if (theme !== 'light' && theme !== 'dark') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       document.documentElement.dataset.theme = theme;
       document.documentElement.classList.add('js');
-      // The loading screen plays once per visit, and never for visitors who turned off animations.
-      var skipIntro = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      try { skipIntro = skipIntro || sessionStorage.getItem('introSeen') === '1'; } catch (e) {}
+      // How was the page opened? 'navigate' (new visit / link), 'reload' (refresh) or 'back_forward'.
+      var nav = performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
+      var openedBy = nav ? nav.type : 'navigate';
+      // A refresh always starts again from the top (without a leftover #section in the address).
+      if (openedBy === 'reload') {
+        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+      }
+      // The loading screen plays on every visit and refresh, but not when going back/forward
+      // in history, and never for visitors who turned off animations.
+      var skipIntro = openedBy === 'back_forward' || matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (skipIntro) document.documentElement.classList.add('no-intro', 'ready');
     })();
   </script>
   <!-- ?v= changes with each update so phones never keep an old copy -->
-  <link rel="stylesheet" href="style.css?v=2026-10-23c">
+  <link rel="stylesheet" href="style.css?v=2026-10-23d">
 </head>
 <body>
   <div class="loader" id="loader" aria-hidden="true">
     <div class="loader-glow"></div>
-    <div class="loader-corner loader-brand">MCG<span>.</span></div>
+    <div class="loader-corner loader-brand">MCJG<span>.</span></div>
     <div class="loader-corner loader-year">Portfolio · 2026</div>
     <div class="loader-inner">
       <ul class="loader-lines" id="loaderLines"></ul>
@@ -39,7 +47,7 @@
   <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
   <header class="site-header">
-    <a class="brand" href="#home" aria-label="Go to home">MCG<span>.</span></a>
+    <a class="brand" href="#home" aria-label="Go to home">MCJG<span>.</span></a>
     <nav id="navigation" aria-label="Main navigation">
       <a href="#about">About</a><a href="#skills">Skills</a><a href="#projects">Projects</a>
       <a href="#certificates">Certificates</a><a href="#resume">Resume</a><a class="nav-contact" href="#contact">Contact</a>
@@ -84,7 +92,7 @@
         <!-- The lanyard strap is drawn by script.js; the card swings on it and can be dragged. -->
         <svg class="lanyard" aria-hidden="true" focusable="false">
           <path id="lanyardStrap" class="lanyard-strap" d="M0 0"/>
-          <text class="lanyard-text"><textPath href="#lanyardStrap" startOffset="6">MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT • MCG • PORTFOLIO • BSIT •</textPath></text>
+          <text class="lanyard-text"><textPath href="#lanyardStrap" startOffset="6">MCJG • PORTFOLIO • BSIT • MCJG • PORTFOLIO • BSIT • MCJG • PORTFOLIO • BSIT • MCJG • PORTFOLIO • BSIT • MCJG • PORTFOLIO • BSIT •</textPath></text>
           <circle id="lanyardPin" class="lanyard-pin" r="6" cx="0" cy="0"/>
         </svg>
         <div class="id-card" id="idCard" role="img" aria-label="Student ID card: Ma.Corazon June L. Galang, BS Information Technology, Northeastern College">
@@ -251,7 +259,7 @@
       </div>
     </section>
   </main>
-  <footer><a class="brand" href="#home">MCG<span>.</span></a><p>© <span id="year"></span> Ma.Corazon June L. Galang · Professional Portfolio<span class="footer-hint needs-js"> · Press <kbd class="shortcut-key">Ctrl K</kbd> to explore</span></p><a href="#home" class="back-top">Back to top ↑</a></footer>
+  <footer><a class="brand" href="#home">MCJG<span>.</span></a><p>© <span id="year"></span> Ma.Corazon June L. Galang · Professional Portfolio<span class="footer-hint needs-js"> · Press <kbd class="shortcut-key">Ctrl K</kbd> to explore</span></p><a href="#home" class="back-top">Back to top ↑</a></footer>
 
   <dialog class="lightbox" id="lightbox" aria-label="Document viewer">
     <div class="lightbox-top">
@@ -281,6 +289,6 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="script.js?v=2026-10-23b"></script>
+  <script src="script.js?v=2026-10-23d"></script>
 </body>
 </html>

@@ -28,6 +28,11 @@ document.addEventListener('keydown', event => {
 document.getElementById('year').textContent = new Date().getFullYear();
 if (isMac) document.querySelectorAll('.shortcut-key').forEach(key => { key.textContent = '⌘ K'; });
 
+// After a refresh, make sure we really start at the top (the <head> script turned off scroll restoring).
+if (performance.getEntriesByType && (performance.getEntriesByType('navigation')[0] || {}).type === 'reload') {
+  window.scrollTo(0, 0);
+}
+
 // ---------- Loading screen ----------
 // Shows real progress (fonts + portrait photos), lasts at least MIN_TIME so it can be seen,
 // and never longer than MAX_TIME. `introDone` resolves when the screen starts lifting.
@@ -73,7 +78,6 @@ const introDone = new Promise(resolve => {
     clearTimeout(safetyTimer);
     while (nextStep < steps.length) addLine();
     lineList.lastElementChild.classList.add('done');
-    try { sessionStorage.setItem('introSeen', '1'); } catch (e) {}
     setTimeout(() => {
       root.classList.add('ready');
       loader.classList.add('leave');
